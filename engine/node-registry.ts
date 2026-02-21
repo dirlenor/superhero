@@ -246,6 +246,106 @@ export const nodeTemplates: NodeTemplate[] = [
       },
     ],
   },
+  {
+    kind: "patchPlanGenerate",
+    label: "PatchPlan Generate",
+    description: "Create deterministic hero file patch operations",
+    category: "Generation",
+    accentColor: "#ED8936",
+    defaults: {
+      workspaceName: "hero-workspace",
+      title: "Superhero Landing",
+      ctaText: "Launch now",
+    },
+    fields: [
+      {
+        key: "workspaceName",
+        label: "Workspace Name",
+        type: "text",
+        placeholder: "hero-workspace",
+      },
+      {
+        key: "title",
+        label: "Page Title",
+        type: "text",
+        placeholder: "Superhero Landing",
+      },
+      {
+        key: "ctaText",
+        label: "CTA Text",
+        type: "text",
+        placeholder: "Launch now",
+      },
+    ],
+    inputs: [
+      { key: "heroArtifact", label: "heroArtifact", type: "heroArtifact", direction: "input" },
+      { key: "jsonTheme", label: "json(theme)", type: "json", direction: "input", optional: true },
+      { key: "jsonAnimation", label: "json(animation)", type: "json", direction: "input", optional: true },
+    ],
+    outputs: [{ key: "patchPlan", label: "patchPlan", type: "patchPlan", direction: "output" }],
+  },
+  {
+    kind: "workspaceApply",
+    label: "Apply Workspace",
+    description: "Create workspace and apply patch operations",
+    category: "Output",
+    accentColor: "#A0AEC0",
+    defaults: {
+      keepExisting: false,
+    },
+    fields: [
+      {
+        key: "keepExisting",
+        label: "Keep Existing",
+        type: "select",
+        options: [
+          { label: "false", value: "false" },
+          { label: "true", value: "true" },
+        ],
+      },
+    ],
+    inputs: [{ key: "patchPlan", label: "patchPlan", type: "patchPlan", direction: "input" }],
+    outputs: [{ key: "workspace", label: "workspace", type: "workspace", direction: "output" }],
+  },
+  {
+    kind: "previewRun",
+    label: "Run Preview",
+    description: "Start local dev server and return preview URL",
+    category: "Output",
+    accentColor: "#ED64A6",
+    defaults: {
+      startPort: 3010,
+    },
+    fields: [
+      { key: "startPort", label: "Start Port", type: "number", min: 3010, max: 9999 },
+    ],
+    inputs: [{ key: "workspace", label: "workspace", type: "workspace", direction: "input" }],
+    outputs: [{ key: "preview", label: "preview", type: "preview", direction: "output" }],
+  },
+  {
+    kind: "heroPublish",
+    label: "Publish",
+    description: "Save published hero record locally",
+    category: "Output",
+    accentColor: "#38B2AC",
+    defaults: {
+      titleOverride: "",
+    },
+    fields: [
+      {
+        key: "titleOverride",
+        label: "Title Override",
+        type: "text",
+        placeholder: "",
+      },
+    ],
+    inputs: [
+      { key: "heroArtifact", label: "heroArtifact", type: "heroArtifact", direction: "input" },
+      { key: "workspace", label: "workspace", type: "workspace", direction: "input" },
+      { key: "preview", label: "preview", type: "preview", direction: "input" },
+    ],
+    outputs: [{ key: "json", label: "json(published)", type: "json", direction: "output" }],
+  },
 ];
 
 export function getTemplateByKind(kind: NodeKind) {

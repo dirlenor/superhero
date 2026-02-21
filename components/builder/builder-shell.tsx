@@ -14,21 +14,28 @@ import { BuilderActionsProvider } from "@/components/builder/builder-actions-con
 import { BottomToolbar } from "@/components/builder/bottom-toolbar";
 import { GraphCanvas } from "@/components/builder/graph-canvas";
 import { GraphJsonDialog } from "@/components/builder/graph-json-dialog";
+import { IdePanel } from "@/components/builder/ide-panel";
 import { InspectorPanel } from "@/components/builder/inspector-panel";
 import { LogDrawer } from "@/components/builder/log-drawer";
+import { NodePalette } from "@/components/builder/node-palette";
+import { PreviewPanel } from "@/components/builder/preview-panel";
+import { RunHistoryPanel } from "@/components/builder/run-history-panel";
 import type { FlowEdge, FlowNode } from "@/components/builder/types";
 import { WorkbenchTopbar } from "@/components/builder/workbench-topbar";
 import { validateConnection } from "@/engine/graph-validation";
 import {
   createNodeData,
   getTemplateByKind,
+  nodeTemplates,
 } from "@/engine/node-registry";
 import { createHandleId } from "@/engine/ports";
 import type {
   BuilderGraphSnapshot,
   EngineRunResult,
+  NodeKind,
   NodeConfigValue,
   NodeLogEntry,
+  RunHistoryItem,
 } from "@/engine/types";
 
 const STORAGE_KEY = "superhero-workbench.graph.v1";
@@ -77,6 +84,30 @@ function createInitialNodes(): FlowNode[] {
       type: "workbenchNode",
       position: { x: 1110, y: 280 },
       data: createNodeData("generateHero"),
+    },
+    {
+      id: "patchplan-1",
+      type: "workbenchNode",
+      position: { x: 1450, y: 280 },
+      data: createNodeData("patchPlanGenerate"),
+    },
+    {
+      id: "workspace-1",
+      type: "workbenchNode",
+      position: { x: 1790, y: 280 },
+      data: createNodeData("workspaceApply"),
+    },
+    {
+      id: "preview-1",
+      type: "workbenchNode",
+      position: { x: 2130, y: 280 },
+      data: createNodeData("previewRun"),
+    },
+    {
+      id: "publish-1",
+      type: "workbenchNode",
+      position: { x: 2470, y: 280 },
+      data: createNodeData("heroPublish"),
     },
   ];
 }
@@ -143,6 +174,78 @@ function createInitialEdges(): FlowEdge[] {
       sourceHandle: createHandleId("output", "text", "text"),
       target: "generator-1",
       targetHandle: createHandleId("input", "negative", "text"),
+      type: "default",
+      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
+    },
+    {
+      id: "e-gen-patchplan",
+      source: "generator-1",
+      sourceHandle: createHandleId("output", "heroArtifact", "heroArtifact"),
+      target: "patchplan-1",
+      targetHandle: createHandleId("input", "heroArtifact", "heroArtifact"),
+      type: "default",
+      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
+    },
+    {
+      id: "e-theme-patchplan",
+      source: "theme-1",
+      sourceHandle: createHandleId("output", "json", "json"),
+      target: "patchplan-1",
+      targetHandle: createHandleId("input", "jsonTheme", "json"),
+      type: "default",
+      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
+    },
+    {
+      id: "e-animation-patchplan",
+      source: "animation-1",
+      sourceHandle: createHandleId("output", "json", "json"),
+      target: "patchplan-1",
+      targetHandle: createHandleId("input", "jsonAnimation", "json"),
+      type: "default",
+      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
+    },
+    {
+      id: "e-patchplan-workspace",
+      source: "patchplan-1",
+      sourceHandle: createHandleId("output", "patchPlan", "patchPlan"),
+      target: "workspace-1",
+      targetHandle: createHandleId("input", "patchPlan", "patchPlan"),
+      type: "default",
+      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
+    },
+    {
+      id: "e-workspace-preview",
+      source: "workspace-1",
+      sourceHandle: createHandleId("output", "workspace", "workspace"),
+      target: "preview-1",
+      targetHandle: createHandleId("input", "workspace", "workspace"),
+      type: "default",
+      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
+    },
+    {
+      id: "e-gen-publish",
+      source: "generator-1",
+      sourceHandle: createHandleId("output", "heroArtifact", "heroArtifact"),
+      target: "publish-1",
+      targetHandle: createHandleId("input", "heroArtifact", "heroArtifact"),
+      type: "default",
+      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
+    },
+    {
+      id: "e-workspace-publish",
+      source: "workspace-1",
+      sourceHandle: createHandleId("output", "workspace", "workspace"),
+      target: "publish-1",
+      targetHandle: createHandleId("input", "workspace", "workspace"),
+      type: "default",
+      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
+    },
+    {
+      id: "e-preview-publish",
+      source: "preview-1",
+      sourceHandle: createHandleId("output", "preview", "preview"),
+      target: "publish-1",
+      targetHandle: createHandleId("input", "preview", "preview"),
       type: "default",
       style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
     },
@@ -222,11 +325,26 @@ function applyRunToNodes(currentNodes: FlowNode[], result: EngineRunResult): Flo
   });
 }
 
+const kindIdPrefix: Record<NodeKind, string> = {
+  imageInput: "image",
+  prompt: "prompt",
+  promptNegative: "negative",
+  combinePrompt: "combine",
+  theme: "theme",
+  animation: "animation",
+  generateHero: "hero",
+  patchPlanGenerate: "patchplan",
+  workspaceApply: "workspace",
+  previewRun: "preview",
+  heroPublish: "publish",
+};
+
 export function BuilderShell() {
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(createInitialNodes());
   const [edges, setEdges, onEdgesChange] = useEdgesState<FlowEdge>(createInitialEdges());
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [jsonDialogOpen, setJsonDialogOpen] = useState(false);
+  const [paletteQuery, setPaletteQuery] = useState("");
   const [statusMessage, setStatusMessage] = useState("Ready");
   const [invalidTooltip, setInvalidTooltip] = useState<{
     x: number;
@@ -235,6 +353,9 @@ export function BuilderShell() {
   } | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [isLogDrawerOpen, setIsLogDrawerOpen] = useState(true);
+  const [runHistory, setRunHistory] = useState<RunHistoryItem[]>([]);
+  const [isRunHistoryLoading, setIsRunHistoryLoading] = useState(false);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(360);
@@ -273,6 +394,31 @@ export function BuilderShell() {
     };
   }, []);
 
+  const fetchRunHistory = useCallback(async () => {
+    setIsRunHistoryLoading(true);
+    try {
+      const response = await fetch(
+        `/api/workflow/runs?workflowId=${encodeURIComponent(WORKFLOW_ID)}&limit=10`,
+        { cache: "no-store" }
+      );
+      const payload = (await response.json()) as {
+        ok: boolean;
+        runs?: RunHistoryItem[];
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok || !payload.runs) {
+        throw new Error(payload.error ?? "Failed to load run history");
+      }
+
+      setRunHistory(payload.runs);
+    } catch {
+      setRunHistory([]);
+    } finally {
+      setIsRunHistoryLoading(false);
+    }
+  }, []);
+
   const hydrateLatestRun = useCallback(async () => {
     try {
       const response = await fetch(`/api/workflow/latest?workflowId=${encodeURIComponent(WORKFLOW_ID)}`, {
@@ -287,6 +433,7 @@ export function BuilderShell() {
         return;
       }
       setNodes((currentNodes) => applyRunToNodes(currentNodes, payload.result as EngineRunResult));
+      setSelectedRunId(payload.result.runId);
       setStatusMessage(`Loaded latest run ${payload.result.runId.slice(0, 8)}`);
     } catch {
       setStatusMessage("Ready");
@@ -295,7 +442,32 @@ export function BuilderShell() {
 
   useEffect(() => {
     void hydrateLatestRun();
-  }, [hydrateLatestRun]);
+    void fetchRunHistory();
+  }, [fetchRunHistory, hydrateLatestRun]);
+
+  const loadRunById = useCallback(async (runId: string) => {
+    try {
+      const response = await fetch(
+        `/api/workflow/runs/${encodeURIComponent(runId)}?workflowId=${encodeURIComponent(WORKFLOW_ID)}`,
+        { cache: "no-store" }
+      );
+      const payload = (await response.json()) as {
+        ok: boolean;
+        result?: EngineRunResult;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok || !payload.result) {
+        throw new Error(payload.error ?? "Failed to load run detail");
+      }
+
+      setNodes((currentNodes) => applyRunToNodes(currentNodes, payload.result as EngineRunResult));
+      setSelectedRunId(runId);
+      setStatusMessage(`Loaded run ${runId.slice(0, 8)}`);
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Failed to load run");
+    }
+  }, [setNodes]);
 
   const selectedNode = useMemo(
     () => nodes.find((node) => node.id === selectedNodeId) ?? null,
@@ -305,6 +477,64 @@ export function BuilderShell() {
   const selectedTemplate = selectedNode
     ? getTemplateByKind(selectedNode.data.kind)
     : null;
+
+  const filteredTemplates = useMemo(() => {
+    const query = paletteQuery.trim().toLowerCase();
+    if (!query) {
+      return nodeTemplates;
+    }
+    return nodeTemplates.filter((template) => {
+      return (
+        template.label.toLowerCase().includes(query) ||
+        template.description.toLowerCase().includes(query) ||
+        template.kind.toLowerCase().includes(query)
+      );
+    });
+  }, [paletteQuery]);
+
+  const selectedWorkspaceOutput = useMemo(() => {
+    const output = selectedNode?.data.output as Record<string, unknown> | null | undefined;
+    const workspace = output?.workspace;
+    if (workspace && typeof workspace === "object") {
+      const pathValue = (workspace as Record<string, unknown>).path;
+      const heroIdValue = (workspace as Record<string, unknown>).heroId;
+      if (typeof pathValue === "string" && typeof heroIdValue === "string") {
+        return {
+          path: pathValue,
+          heroId: heroIdValue,
+        };
+      }
+    }
+    return null;
+  }, [selectedNode]);
+
+  const selectedPreviewOutput = useMemo(() => {
+    const output = selectedNode?.data.output as Record<string, unknown> | null | undefined;
+    const preview = output?.preview;
+    if (!(preview && typeof preview === "object")) {
+      return null;
+    }
+    const previewUrl = (preview as Record<string, unknown>).url;
+    if (typeof previewUrl !== "string" || !previewUrl) {
+      return null;
+    }
+
+    const sourceWorkspaceNodeId = edges.find(
+      (edge) => edge.target === selectedNode?.id && (edge.targetHandle?.includes(":workspace:") ?? true)
+    )?.source;
+    const sourceWorkspaceNode = nodes.find((node) => node.id === sourceWorkspaceNodeId);
+    const workspaceOutput = sourceWorkspaceNode?.data.output as Record<string, unknown> | null | undefined;
+    const workspace = workspaceOutput?.workspace;
+    const workspacePath =
+      workspace && typeof workspace === "object"
+        ? (workspace as Record<string, unknown>).path
+        : null;
+
+    return {
+      previewUrl,
+      workspacePath: typeof workspacePath === "string" ? workspacePath : null,
+    };
+  }, [edges, nodes, selectedNode]);
 
   const exportValue = useMemo(
     () => JSON.stringify({ nodes, edges }, null, 2),
@@ -358,6 +588,7 @@ export function BuilderShell() {
         }
 
         setNodes((currentNodes) => applyRunToNodes(currentNodes, body.result as EngineRunResult));
+        setSelectedRunId(body.result.runId);
 
         if (body.result.status === "success") {
           setStatusMessage(`Run complete (${body.result.executedNodeIds.length} nodes)`);
@@ -365,14 +596,14 @@ export function BuilderShell() {
           setStatusMessage(body.result.errors[0] ?? "Run completed with errors");
         }
 
-        await hydrateLatestRun();
+        await fetchRunHistory();
       } catch (error) {
         setStatusMessage(error instanceof Error ? error.message : "Execution failed");
       } finally {
         setIsExecuting(false);
       }
     },
-    [hydrateLatestRun, isExecuting, resetExecutionView, setNodes]
+    [fetchRunHistory, isExecuting, resetExecutionView, setNodes]
   );
 
   const runSingleNode = useCallback(
@@ -420,10 +651,38 @@ export function BuilderShell() {
     [setEdges, validateConnectionResult]
   );
 
+  const onAddNode = useCallback((kind: NodeKind) => {
+    const template = getTemplateByKind(kind);
+    if (!template) {
+      return;
+    }
+
+    const idPrefix = kindIdPrefix[kind] ?? "node";
+    const id = `${idPrefix}-${Date.now()}`;
+    const offset = (nodesRef.current.length % 8) * 36;
+
+    setNodes((currentNodes) => [
+      ...currentNodes,
+      {
+        id,
+        type: "workbenchNode",
+        position: {
+          x: 280 + offset,
+          y: 120 + offset,
+        },
+        data: createNodeData(kind),
+      },
+    ]);
+
+    setStatusMessage(`Added ${template.label}`);
+  }, [setNodes]);
+
   const onNew = () => {
     setNodes(createInitialNodes());
     setEdges(createInitialEdges());
+    setPaletteQuery("");
     setSelectedNodeId(null);
+    setSelectedRunId(null);
     setIsSidebarOpen(false);
     setIsLogDrawerOpen(true);
     setStatusMessage("Reset to default workflow");
@@ -449,6 +708,7 @@ export function BuilderShell() {
       setNodes((parsed.nodes as FlowNode[]).map(hydrateNode));
       setEdges(normalizeEdges(parsed.edges as FlowEdge[]));
       setSelectedNodeId(null);
+      setSelectedRunId(null);
       setIsSidebarOpen(false);
       setIsLogDrawerOpen(true);
       setStatusMessage("Loaded graph successfully");
@@ -470,6 +730,7 @@ export function BuilderShell() {
       setNodes((parsed.nodes as FlowNode[]).map(hydrateNode));
       setEdges(normalizeEdges(parsed.edges as FlowEdge[]));
       setSelectedNodeId(null);
+      setSelectedRunId(null);
       setIsSidebarOpen(false);
       setIsLogDrawerOpen(true);
       setStatusMessage("Imported graph successfully");
@@ -512,7 +773,16 @@ export function BuilderShell() {
           statusMessage={statusMessage}
         />
 
-        <div className="flex flex-1 overflow-hidden relative">
+        <div className="flex flex-1 overflow-hidden">
+          <div className="w-[300px] shrink-0 border-r border-[#2D313A] bg-[#0B0D12] p-3">
+            <NodePalette
+              templates={filteredTemplates}
+              query={paletteQuery}
+              onQueryChange={setPaletteQuery}
+              onAddNode={onAddNode}
+            />
+          </div>
+
           <div className="flex-1 relative h-full bg-[#0B0D12]">
             <GraphCanvas
               nodes={nodes}
@@ -549,6 +819,49 @@ export function BuilderShell() {
                 />
               </div>
             </div>
+
+            <div className="pointer-events-none absolute right-4 top-4 z-20 w-[280px]">
+              <div className="pointer-events-auto">
+                <RunHistoryPanel
+                  runs={runHistory}
+                  selectedRunId={selectedRunId}
+                  loading={isRunHistoryLoading}
+                  onSelectRun={(runId) => {
+                    void loadRunById(runId);
+                  }}
+                  onRefresh={() => {
+                    void fetchRunHistory();
+                  }}
+                />
+              </div>
+            </div>
+
+            {selectedWorkspaceOutput ? (
+              <div className="pointer-events-none absolute bottom-24 left-4 z-20">
+                <div className="pointer-events-auto">
+                  <IdePanel
+                    workspacePath={selectedWorkspaceOutput.path}
+                    heroId={selectedWorkspaceOutput.heroId}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {selectedPreviewOutput ? (
+              <div className="pointer-events-none absolute bottom-24 right-4 z-20">
+                <div className="pointer-events-auto">
+                  <PreviewPanel
+                    previewUrl={selectedPreviewOutput.previewUrl}
+                    workspacePath={selectedPreviewOutput.workspacePath}
+                    onRestart={() => {
+                      if (selectedNode?.id) {
+                        runSingleNode(selectedNode.id);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            ) : null}
 
             <BottomToolbar />
 

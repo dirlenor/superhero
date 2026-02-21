@@ -46,28 +46,22 @@ export function WorkbenchNode({ id, data, selected }: NodeProps<FlowNode>) {
           <p className="font-[var(--font-sora)] text-[13px] font-medium tracking-wide text-[#E2E8F0]">{data.label}</p>
         </div>
         
-        {/* Action Button styled like the green + Generate button */}
-        {data.kind === "prompt" || data.kind === "imageInput" || data.kind === "generateHero" ? (
-           <button
-             type="button"
-             onClick={() => runNode(id)}
-             className="nodrag flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-semibold tracking-wider transition-colors"
-             style={{
-               backgroundColor: `${mainColor}25`,
-               color: mainColor,
-               border: `1px solid ${mainColor}40`
-             }}
-           >
-             <Play className="h-3 w-3" />
-             {data.status === 'running' ? 'Running' : 'Generate'}
-           </button>
-        ) : (
-          <div className="flex items-center justify-center">
-            {data.status === 'success' && <CheckCircle2 className="h-4 w-4 text-[#48BB78]" />}
-            {data.status === 'running' && <Loader2 className="h-4 w-4 animate-spin text-[#ECC94B]" />}
-            {data.status === 'error' && <AlertCircle className="h-4 w-4 text-[#F56565]" />}
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={() => runNode(id)}
+          className="nodrag flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-semibold tracking-wider transition-colors"
+          style={{
+            backgroundColor: `${mainColor}25`,
+            color: mainColor,
+            border: `1px solid ${mainColor}40`
+          }}
+        >
+          {data.status === "success" ? <CheckCircle2 className="h-3 w-3" /> : null}
+          {data.status === "running" ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+          {data.status === "error" ? <AlertCircle className="h-3 w-3" /> : null}
+          {data.status === "idle" ? <Play className="h-3 w-3" /> : null}
+          {data.status === "running" ? "Running" : "Run"}
+        </button>
       </div>
 
       {/* Body */}

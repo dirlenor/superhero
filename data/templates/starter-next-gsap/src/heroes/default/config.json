@@ -1,0 +1,17 @@
+{
+  "heroId": "default",
+  "title": "Starter Hero",
+  "headline": "Build heroic pages locally, preview instantly",
+  "subheadline": "This starter project renders hero content from src/heroes/<heroId> files.",
+  "ctaText": "Start Editing",
+  "theme": {
+    "theme": "dark",
+    "primaryColor": "#22d3ee",
+    "fontPreset": "cinematic-sans"
+  },
+  "animation": {
+    "preset": "fadeUp",
+    "speed": 1,
+    "intensity": 60
+  }
+}

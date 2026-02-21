@@ -27,6 +27,18 @@ export function InspectorPanel({
   const [activeTab, setActiveTab] = useState<"config" | "output">("config");
 
   const outputText = JSON.stringify(output ?? { message: "No output generated yet." }, null, 2);
+  const outputRecord = (output ?? {}) as Record<string, unknown>;
+  const previewRecord = (outputRecord.preview ?? null) as Record<string, unknown> | null;
+  const workspaceRecord = (outputRecord.workspace ?? null) as Record<string, unknown> | null;
+  const patchPlanRecord = (outputRecord.patchPlan ?? null) as Record<string, unknown> | null;
+  const previewUrl =
+    (typeof previewRecord?.url === "string" && previewRecord.url) ||
+    (typeof outputRecord.url === "string" ? outputRecord.url : null);
+  const workspacePath =
+    (typeof workspaceRecord?.path === "string" && workspaceRecord.path) ||
+    (typeof outputRecord.path === "string" ? outputRecord.path : null);
+  const patchOpsCount =
+    patchPlanRecord && Array.isArray(patchPlanRecord.ops) ? patchPlanRecord.ops.length : null;
 
   const onCopyOutput = async () => {
     try {
@@ -167,6 +179,26 @@ export function InspectorPanel({
               </button>
             </div>
             <pre className="max-h-[400px] overflow-auto text-xs leading-relaxed text-[#A0AEC0] scrollbar-thin">
+              {previewUrl ? (
+                <a
+                  href={previewUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mb-3 inline-flex rounded-full border border-cyan-400/40 bg-cyan-400/15 px-2.5 py-1 text-[11px] font-semibold text-cyan-100"
+                >
+                  Open Preview URL
+                </a>
+              ) : null}
+              {workspacePath ? (
+                <p className="mb-3 rounded-md border border-[#2D313A] bg-[#13151A] px-2 py-1 text-[11px] text-[#9fb0cf]">
+                  Workspace: {workspacePath}
+                </p>
+              ) : null}
+              {patchOpsCount !== null ? (
+                <p className="mb-3 rounded-md border border-[#2D313A] bg-[#13151A] px-2 py-1 text-[11px] text-[#9fb0cf]">
+                  Patch ops: {patchOpsCount}
+                </p>
+              ) : null}
               {outputText}
             </pre>
           </div>

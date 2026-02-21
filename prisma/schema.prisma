@@ -42,3 +42,17 @@ model NodeRun {
   @@index([nodeId, startedAt(sort: Desc)])
   @@map("node_runs")
 }
+
+model Hero {
+  id            String   @id @default(cuid())
+  title         String
+  heroId        String
+  workspacePath String
+  previewUrl    String
+  thumbnailPath String?
+  createdAt     DateTime @default(now())
+
+  @@index([createdAt(sort: Desc)])
+  @@index([heroId])
+  @@map("heroes")
+}

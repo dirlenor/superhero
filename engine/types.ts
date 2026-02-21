@@ -7,7 +7,11 @@ export type NodeKind =
   | "combinePrompt"
   | "theme"
   | "animation"
-  | "generateHero";
+  | "generateHero"
+  | "patchPlanGenerate"
+  | "workspaceApply"
+  | "previewRun"
+  | "heroPublish";
 
 export type PortType =
   | "image"
@@ -134,4 +138,36 @@ export interface EngineRunResult {
   executedNodeIds: string[];
   nodeStates: Record<string, NodeExecutionState>;
   errors: string[];
+}
+
+export interface RunHistoryItem {
+  runId: string;
+  workflowId: string;
+  status: "running" | "success" | "error";
+  createdAt: string;
+  finishedAt?: string;
+  nodeCount: number;
+  successCount: number;
+  errorCount: number;
+}
+
+export type FileOp =
+  | { kind: "write"; path: string; content: string }
+  | { kind: "mkdir"; path: string };
+
+export interface PatchPlanOutput {
+  heroId: string;
+  workspaceName: string;
+  ops: FileOp[];
+}
+
+export interface WorkspaceOutput {
+  path: string;
+  heroId: string;
+}
+
+export interface PreviewOutput {
+  url: string;
+  port: number;
+  pid: number;
 }

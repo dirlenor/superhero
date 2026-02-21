@@ -36,13 +36,17 @@ interface GraphCanvasProps {
 const getNodeColor = (node: { data?: { kind?: string } }) => {
   const kind = node.data?.kind;
   switch (kind) {
-    case "imageInput": return "#4299E1"; // Blue
-    case "prompt": return "#48BB78"; // Green
-    case "combinePrompt": return "#F56565"; // Red
-    case "theme": return "#ECC94B"; // Yellow
-    case "animation": return "#9F7AEA"; // Purple
-    case "generateHero": return "#4299E1"; // Blue
-    default: return "#A0AEC0"; // Gray
+    case "imageInput": return "#4299E1";
+    case "prompt": return "#48BB78";
+    case "combinePrompt": return "#F56565";
+    case "theme": return "#ECC94B";
+    case "animation": return "#9F7AEA";
+    case "generateHero": return "#4299E1";
+    case "patchPlanGenerate": return "#ED8936";
+    case "workspaceApply": return "#A0AEC0";
+    case "previewRun": return "#ED64A6";
+    case "heroPublish": return "#38B2AC";
+    default: return "#A0AEC0";
   }
 };
 

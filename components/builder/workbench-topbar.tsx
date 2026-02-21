@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   ChevronLeft,
   ChevronRight,
@@ -82,6 +83,13 @@ export function WorkbenchTopbar({
         >
           <FolderOpen className="h-4 w-4" />
         </button>
+
+        <Link
+          href="/heroes"
+          className="flex h-9 items-center rounded-full border border-[#2D313A] bg-[#13151A] px-3 text-[11px] font-semibold text-[#A0AEC0] hover:text-white"
+        >
+          Heroes
+        </Link>
 
         <div className="flex items-center rounded-full bg-[#13151A] p-1">
            <button className="flex h-7 w-7 items-center justify-center rounded-full text-[#A0AEC0] hover:text-white">

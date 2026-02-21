@@ -42,3 +42,5 @@ next-env.d.ts
 
 /lib/generated/prisma
 /dev.db
+/data/workspaces/
+/data/thumbnails/

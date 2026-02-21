@@ -15,6 +15,14 @@ function fallbackOutputPort(nodeType: string) {
       return "json";
     case "hero.generate":
       return "heroArtifact";
+    case "patchplan.generate":
+      return "patchPlan";
+    case "workspace.apply":
+      return "workspace";
+    case "preview.run":
+      return "preview";
+    case "hero.publish":
+      return "json";
     default:
       return "output";
   }
@@ -26,6 +34,14 @@ function fallbackInputPort(nodeType: string) {
       return "textA";
     case "hero.generate":
       return "text";
+    case "patchplan.generate":
+      return "heroArtifact";
+    case "workspace.apply":
+      return "patchPlan";
+    case "preview.run":
+      return "workspace";
+    case "hero.publish":
+      return "heroArtifact";
     default:
       return "input";
   }
