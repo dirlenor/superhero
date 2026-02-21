@@ -1,6 +1,18 @@
-import { Plus, Search } from "lucide-react";
+import {
+  Ban,
+  Combine,
+  FileCode2,
+  FolderCog,
+  Image as ImageIcon,
+  MonitorPlay,
+  Palette,
+  PlaySquare,
+  Rocket,
+  Search,
+  Sparkles,
+  Type,
+} from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { NodeTemplate } from "@/engine/node-registry";
 import type { NodeCategory, NodeKind } from "@/engine/types";
@@ -11,6 +23,20 @@ interface NodePaletteProps {
   onQueryChange: (query: string) => void;
   onAddNode: (kind: NodeKind) => void;
 }
+
+const iconMap: Record<NodeKind, React.ElementType> = {
+  imageInput: ImageIcon,
+  prompt: Type,
+  promptNegative: Ban,
+  combinePrompt: Combine,
+  theme: Palette,
+  animation: PlaySquare,
+  generateHero: Sparkles,
+  patchPlanGenerate: FileCode2,
+  workspaceApply: FolderCog,
+  previewRun: MonitorPlay,
+  heroPublish: Rocket,
+};
 
 export function NodePalette({
   templates,
@@ -36,10 +62,10 @@ export function NodePalette({
   );
 
   return (
-    <aside className="glass-card flex h-full min-h-[560px] flex-col rounded-xl p-3">
+    <aside className="flex h-full min-h-[560px] flex-col rounded-xl p-3">
       <div className="mb-3">
         <p className="font-[var(--font-sora)] text-sm font-semibold text-[#eef5ff]">Node Palette</p>
-        <p className="text-xs text-[#8fa2cb]">Search and add nodes to the canvas</p>
+        <p className="text-xs text-[#8fa2cb]">Select nodes to add</p>
       </div>
 
       <div className="relative mb-4">
@@ -48,11 +74,11 @@ export function NodePalette({
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Search nodes..."
-          className="pl-8"
+          className="pl-8 bg-[#13151A] border-[#2D313A] text-white"
         />
       </div>
 
-      <div className="space-y-4 overflow-y-auto pr-1">
+      <div className="space-y-6 overflow-y-auto pr-1 pb-4">
         {(Object.entries(groupedTemplates) as [NodeCategory, NodeTemplate[]][]).map(
           ([category, items]) => {
             if (!items.length) {
@@ -60,31 +86,33 @@ export function NodePalette({
             }
 
             return (
-              <section key={category} className="space-y-2">
+              <section key={category} className="space-y-3">
                 <p className="text-[11px] font-semibold tracking-[0.16em] text-[#7f90b3] uppercase">
                   {category}
                 </p>
 
-                <div className="space-y-2">
-                  {items.map((template) => (
-                    <div
-                      key={template.kind}
-                      className="rounded-lg border border-[#253455] bg-[#0c1427] p-2.5"
-                    >
-                      <div className="mb-2 flex items-center justify-between">
-                        <p className="text-sm font-semibold text-[#e8f0ff]">{template.label}</p>
-                        <span
-                          className="size-2 rounded-full"
-                          style={{ backgroundColor: template.accentColor }}
-                        />
-                      </div>
-                      <p className="mb-3 text-xs text-[#8fa2cb]">{template.description}</p>
-                      <Button size="sm" className="w-full" onClick={() => onAddNode(template.kind)}>
-                        <Plus className="size-4" />
-                        Add Node
-                      </Button>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-2 gap-2.5">
+                  {items.map((template) => {
+                    const Icon = iconMap[template.kind] || Sparkles;
+                    
+                    return (
+                      <button
+                        key={template.kind}
+                        onClick={() => onAddNode(template.kind)}
+                        className="group flex aspect-square flex-col items-center justify-center gap-3 rounded-xl border border-[#2D313A] bg-[#13151A] p-3 transition-all hover:border-[#4A5568] hover:bg-[#1A202C]"
+                      >
+                        <div
+                          className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0B0D12] transition-transform group-hover:scale-110"
+                          style={{ boxShadow: `0 0 10px ${template.accentColor}20` }}
+                        >
+                          <Icon className="size-5" style={{ color: template.accentColor }} />
+                        </div>
+                        <span className="text-center text-[10px] font-medium leading-tight text-[#A0AEC0] group-hover:text-white">
+                          {template.label}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </section>
             );
