@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum RunStatus {
+  running
+  success
+  error
+}
+
+model WorkflowRun {
+  id         String    @id @default(cuid())
+  workflowId String
+  status     RunStatus
+  createdAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  nodeRuns NodeRun[]
+
+  @@index([workflowId, createdAt(sort: Desc)])
+  @@map("workflow_runs")
+}
+
+model NodeRun {
+  id         String    @id @default(cuid())
+  runId      String
+  nodeId     String
+  status     RunStatus
+  startedAt  DateTime
+  finishedAt DateTime?
+  durationMs Int?
+  logsText   String
+  outputJson Json?
+
+  run WorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([nodeId, startedAt(sort: Desc)])
+  @@map("node_runs")
+}
