@@ -6,6 +6,7 @@ import {
   useEdgesState,
   useNodesState,
   type Connection,
+  type EdgeMouseHandler,
   type IsValidConnection,
 } from "@xyflow/react";
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
@@ -352,10 +353,11 @@ export function BuilderShell() {
     message: string;
   } | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
-  const [isLogDrawerOpen, setIsLogDrawerOpen] = useState(true);
   const [runHistory, setRunHistory] = useState<RunHistoryItem[]>([]);
   const [isRunHistoryLoading, setIsRunHistoryLoading] = useState(false);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [isPaletteVisible, setIsPaletteVisible] = useState(true);
+  const [isRunHistoryVisible, setIsRunHistoryVisible] = useState(true);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(360);
@@ -651,6 +653,17 @@ export function BuilderShell() {
     [setEdges, validateConnectionResult]
   );
 
+  const onEdgeClick: EdgeMouseHandler<FlowEdge> = useCallback(
+    (event, edge) => {
+      if (event.detail < 2) {
+        return;
+      }
+      setEdges((currentEdges) => currentEdges.filter((currentEdge) => currentEdge.id !== edge.id));
+      setStatusMessage("Connection removed");
+    },
+    [setEdges]
+  );
+
   const onAddNode = useCallback((kind: NodeKind) => {
     const template = getTemplateByKind(kind);
     if (!template) {
@@ -684,7 +697,6 @@ export function BuilderShell() {
     setSelectedNodeId(null);
     setSelectedRunId(null);
     setIsSidebarOpen(false);
-    setIsLogDrawerOpen(true);
     setStatusMessage("Reset to default workflow");
   };
 
@@ -710,8 +722,7 @@ export function BuilderShell() {
       setSelectedNodeId(null);
       setSelectedRunId(null);
       setIsSidebarOpen(false);
-      setIsLogDrawerOpen(true);
-      setStatusMessage("Loaded graph successfully");
+        setStatusMessage("Loaded graph successfully");
     } catch {
       setStatusMessage("Load failed: invalid JSON");
     }
@@ -732,8 +743,7 @@ export function BuilderShell() {
       setSelectedNodeId(null);
       setSelectedRunId(null);
       setIsSidebarOpen(false);
-      setIsLogDrawerOpen(true);
-      setStatusMessage("Imported graph successfully");
+        setStatusMessage("Imported graph successfully");
     } catch {
       setStatusMessage("Import failed: check JSON format");
     }
@@ -762,7 +772,7 @@ export function BuilderShell() {
 
   return (
     <BuilderActionsProvider value={{ runNode: runSingleNode }}>
-      <div className="flex h-screen w-full flex-col bg-[#0B0D12] text-[#E2E8F0]">
+      <div className="builder-clean flex h-screen w-full flex-col bg-[#0B0D12] text-[#E2E8F0]">
         <WorkbenchTopbar
           onNew={onNew}
           onLoad={onLoad}
@@ -773,17 +783,31 @@ export function BuilderShell() {
           statusMessage={statusMessage}
         />
 
-        <div className="flex flex-1 overflow-hidden">
-          <div className="w-[300px] shrink-0 border-r border-[#2D313A] bg-[#0B0D12] p-3">
-            <NodePalette
-              templates={filteredTemplates}
-              query={paletteQuery}
-              onQueryChange={setPaletteQuery}
-              onAddNode={onAddNode}
-            />
+        <div className="px-4 py-2">
+          <LogDrawer
+            nodeLabel={selectedNode?.data.label ?? null}
+            logs={selectedNode?.data.logs ?? []}
+            statusMessage={statusMessage}
+          />
+        </div>
+
+        <div className="relative flex flex-1 overflow-hidden">
+          <div
+            className={`pointer-events-none absolute left-0 top-0 z-30 h-full w-[300px] transition-transform duration-300 ease-out ${
+              isPaletteVisible ? "translate-x-0" : "-translate-x-full"
+            }`}
+          >
+            <div className="pointer-events-auto h-full border-r border-[#2D313A] bg-[#0B0D12] p-3 shadow-[12px_0_28px_-20px_rgba(0,0,0,0.9)]">
+              <NodePalette
+                templates={filteredTemplates}
+                query={paletteQuery}
+                onQueryChange={setPaletteQuery}
+                onAddNode={onAddNode}
+              />
+            </div>
           </div>
 
-          <div className="flex-1 relative h-full bg-[#0B0D12]">
+          <div className="relative flex-1 min-w-0 h-full bg-[#0B0D12]">
             <GraphCanvas
               nodes={nodes}
               edges={edges}
@@ -806,35 +830,28 @@ export function BuilderShell() {
                 setSelectedNodeId(node.id);
                 setIsSidebarOpen(true);
               }}
+              onEdgeClick={onEdgeClick}
+              onEdgeDoubleClick={onEdgeClick}
               invalidTooltip={invalidTooltip}
             />
 
-            <div className="pointer-events-none absolute left-4 top-4 z-20 max-w-[480px]">
-              <div className="pointer-events-auto">
-                <LogDrawer
-                  open={isLogDrawerOpen}
-                  onToggle={() => setIsLogDrawerOpen((open) => !open)}
-                  nodeLabel={selectedNode?.data.label ?? null}
-                  logs={selectedNode?.data.logs ?? []}
-                />
+            {isRunHistoryVisible ? (
+              <div className="pointer-events-none absolute right-4 top-4 z-20 w-[280px]">
+                <div className="pointer-events-auto">
+                  <RunHistoryPanel
+                    runs={runHistory}
+                    selectedRunId={selectedRunId}
+                    loading={isRunHistoryLoading}
+                    onSelectRun={(runId) => {
+                      void loadRunById(runId);
+                    }}
+                    onRefresh={() => {
+                      void fetchRunHistory();
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-
-            <div className="pointer-events-none absolute right-4 top-4 z-20 w-[280px]">
-              <div className="pointer-events-auto">
-                <RunHistoryPanel
-                  runs={runHistory}
-                  selectedRunId={selectedRunId}
-                  loading={isRunHistoryLoading}
-                  onSelectRun={(runId) => {
-                    void loadRunById(runId);
-                  }}
-                  onRefresh={() => {
-                    void fetchRunHistory();
-                  }}
-                />
-              </div>
-            </div>
+            ) : null}
 
             {selectedWorkspaceOutput ? (
               <div className="pointer-events-none absolute bottom-24 left-4 z-20">
@@ -863,7 +880,12 @@ export function BuilderShell() {
               </div>
             ) : null}
 
-            <BottomToolbar />
+            <BottomToolbar
+              isPaletteVisible={isPaletteVisible}
+              isRunHistoryVisible={isRunHistoryVisible}
+              onTogglePalette={() => setIsPaletteVisible((visible) => !visible)}
+              onToggleRunHistory={() => setIsRunHistoryVisible((visible) => !visible)}
+            />
 
             {!isSidebarOpen && selectedNodeId && (
               <button

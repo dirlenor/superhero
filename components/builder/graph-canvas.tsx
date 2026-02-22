@@ -5,6 +5,7 @@ import {
   MiniMap,
   ReactFlow,
   type Connection,
+  type EdgeMouseHandler,
   type IsValidConnection,
   type OnEdgesChange,
   type OnNodesChange,
@@ -30,6 +31,8 @@ interface GraphCanvasProps {
   onConnectEnd: (payload: { x: number; y: number }) => void;
   onSelectionNode: (nodes: FlowNode[]) => void;
   onNodeDoubleClick?: NodeMouseHandler;
+  onEdgeClick?: EdgeMouseHandler<FlowEdge>;
+  onEdgeDoubleClick?: EdgeMouseHandler<FlowEdge>;
   invalidTooltip: { x: number; y: number; message: string } | null;
 }
 
@@ -61,6 +64,8 @@ export function GraphCanvas({
   onConnectEnd,
   onSelectionNode,
   onNodeDoubleClick,
+  onEdgeClick,
+  onEdgeDoubleClick,
   invalidTooltip,
 }: GraphCanvasProps) {
   return (
@@ -86,10 +91,14 @@ export function GraphCanvas({
             onSelectionNode(selectedNodes as FlowNode[])
           }
           onNodeDoubleClick={onNodeDoubleClick}
+          onEdgeClick={onEdgeClick}
+          onEdgeDoubleClick={onEdgeDoubleClick}
+          edgesFocusable
           defaultEdgeOptions={{
             type: "default",
             animated: false,
             style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
+            interactionWidth: 44,
           }}
           proOptions={{ hideAttribution: true }}
         >

@@ -99,11 +99,10 @@ export function NodePalette({
                       <button
                         key={template.kind}
                         onClick={() => onAddNode(template.kind)}
-                        className="group flex aspect-square flex-col items-center justify-center gap-3 rounded-xl border border-[#2D313A] bg-[#13151A] p-3 transition-all hover:border-[#4A5568] hover:bg-[#1A202C]"
+                        className="group flex aspect-square flex-col items-center justify-center gap-3 rounded-xl border-0 bg-[#13151A] p-3 transition-all hover:bg-[#1A202C] focus:outline-none"
                       >
                         <div
                           className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0B0D12] transition-transform group-hover:scale-110"
-                          style={{ boxShadow: `0 0 10px ${template.accentColor}20` }}
                         >
                           <Icon className="size-5" style={{ color: template.accentColor }} />
                         </div>

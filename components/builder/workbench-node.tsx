@@ -33,14 +33,14 @@ export function WorkbenchNode({ id, data, selected }: NodeProps<FlowNode>) {
     <div
       className="min-w-[280px] rounded-[18px] border bg-[#15171e] text-white shadow-xl transition-shadow"
       style={{
-        borderColor: selected ? mainColor : "#2D313A",
+        borderColor: "#1E232E",
         boxShadow: selected
-          ? `0 0 0 1px ${mainColor}40, 0 10px 25px -5px rgba(0,0,0,0.8), 0 0 20px ${mainColor}15`
+          ? "0 14px 30px -8px rgba(0,0,0,0.82), 0 0 0 1px rgba(84,100,130,0.25)"
           : "0 10px 25px -5px rgba(0,0,0,0.5)",
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[#2D313A] px-4 py-3">
+      <div className="flex items-center justify-between border-b border-[#1F2430] px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full" style={{ backgroundColor: mainColor, boxShadow: `0 0 6px ${mainColor}` }} />
           <p className="font-[var(--font-sora)] text-[13px] font-medium tracking-wide text-[#E2E8F0]">{data.label}</p>
