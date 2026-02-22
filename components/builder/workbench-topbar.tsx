@@ -6,7 +6,6 @@ import {
   FolderOpen,
   LayoutGrid,
   Menu,
-  Play,
   Trash2,
   UploadCloud,
 } from "lucide-react";
@@ -17,8 +16,6 @@ interface WorkbenchTopbarProps {
   onLoad: () => void;
   onSave: () => void;
   onExport: () => void;
-  onRunWorkflow: () => void;
-  runningWorkflow: boolean;
   statusMessage: string;
 }
 
@@ -28,8 +25,6 @@ export function WorkbenchTopbar({
   onLoad,
   onSave,
   onExport,
-  onRunWorkflow,
-  runningWorkflow,
   statusMessage,
 }: WorkbenchTopbarProps) {
   return (
@@ -106,16 +101,7 @@ export function WorkbenchTopbar({
            <button className="flex h-7 w-7 items-center justify-center rounded-full text-[#A0AEC0] hover:text-white">
              <LayoutGrid className="h-4 w-4" />
            </button>
-           <div className="mx-1 h-4 w-px bg-[#2D313A]" />
-           <button 
-             onClick={onRunWorkflow} 
-             disabled={runningWorkflow}
-             className="flex h-7 items-center gap-2 rounded-full px-3 text-xs font-medium text-[#E2E8F0] hover:bg-[#1A202C]"
-           >
-             <Play className="h-3 w-3 fill-current" />
-             {runningWorkflow ? "Queueing..." : "Queue"}
-           </button>
-        </div>
+         </div>
         
         {/* Main action white button (Share in ref, Save for us) */}
         <button 

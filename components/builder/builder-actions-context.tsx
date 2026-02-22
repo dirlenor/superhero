@@ -3,7 +3,6 @@
 import { createContext, useContext } from "react";
 
 interface BuilderActionsContextValue {
-  runNode: (nodeId: string) => void;
   deleteNode: (nodeId: string) => void;
 }
 

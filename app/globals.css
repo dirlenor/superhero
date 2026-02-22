@@ -247,3 +247,19 @@ body {
 .react-flow__edge-interaction {
   stroke-width: 44px !important;
 }
+
+@keyframes nodeRunningPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.012);
+    filter: brightness(1.09);
+  }
+}
+
+.node-running-pulse {
+  animation: nodeRunningPulse 1.2s ease-in-out infinite;
+}

@@ -130,6 +130,16 @@ Prerequisite for preview runtime:
 npm install -g pnpm
 ```
 
+Optional prerequisite for image -> prompt extraction:
+
+```bash
+export OPENROUTER_API_KEY=your_openrouter_api_key
+```
+
+The `Image Input` node now supports `mode=visionPrompt` and uses the configured
+OpenRouter model (default: `qwen/qwen3-vl-235b-a22b-thinking`) to produce a
+text prompt output from the image.
+
 ## Useful commands
 
 ```bash

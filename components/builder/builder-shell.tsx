@@ -29,7 +29,6 @@ import {
   getTemplateByKind,
   nodeTemplates,
 } from "@/engine/node-registry";
-import { createHandleId } from "@/engine/ports";
 import type {
   BuilderGraphSnapshot,
   EngineRunResult,
@@ -42,215 +41,41 @@ import type {
 const STORAGE_KEY = "superhero-workbench.graph.v1";
 const WORKFLOW_ID = "default-workflow";
 
+function isEditableTarget(target: EventTarget | null) {
+  const element = target as HTMLElement | null;
+  if (!element) {
+    return false;
+  }
+  const tagName = element.tagName;
+  return (
+    element.isContentEditable ||
+    tagName === "INPUT" ||
+    tagName === "TEXTAREA" ||
+    tagName === "SELECT"
+  );
+}
+
+function fileToDataUrl(file: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+      } else {
+        reject(new Error("Failed to read image data."));
+      }
+    };
+    reader.onerror = () => reject(new Error("Failed to read image data."));
+    reader.readAsDataURL(file);
+  });
+}
+
 function createInitialNodes(): FlowNode[] {
-  return [
-    {
-      id: "model-1",
-      type: "workbenchNode",
-      position: { x: 50, y: 300 },
-      data: createNodeData("imageInput"),
-    },
-    {
-      id: "prompt-1",
-      type: "workbenchNode",
-      position: { x: 400, y: 150 },
-      data: createNodeData("prompt"),
-    },
-    {
-      id: "prompt-2",
-      type: "workbenchNode",
-      position: { x: 400, y: 450 },
-      data: createNodeData("promptNegative"),
-    },
-    {
-      id: "combine-1",
-      type: "workbenchNode",
-      position: { x: 760, y: 280 },
-      data: createNodeData("combinePrompt"),
-    },
-    {
-      id: "theme-1",
-      type: "workbenchNode",
-      position: { x: 760, y: 40 },
-      data: createNodeData("theme"),
-    },
-    {
-      id: "animation-1",
-      type: "workbenchNode",
-      position: { x: 760, y: 520 },
-      data: createNodeData("animation"),
-    },
-    {
-      id: "generator-1",
-      type: "workbenchNode",
-      position: { x: 1110, y: 280 },
-      data: createNodeData("generateHero"),
-    },
-    {
-      id: "patchplan-1",
-      type: "workbenchNode",
-      position: { x: 1450, y: 280 },
-      data: createNodeData("patchPlanGenerate"),
-    },
-    {
-      id: "workspace-1",
-      type: "workbenchNode",
-      position: { x: 1790, y: 280 },
-      data: createNodeData("workspaceApply"),
-    },
-    {
-      id: "preview-1",
-      type: "workbenchNode",
-      position: { x: 2130, y: 280 },
-      data: createNodeData("previewRun"),
-    },
-    {
-      id: "publish-1",
-      type: "workbenchNode",
-      position: { x: 2470, y: 280 },
-      data: createNodeData("heroPublish"),
-    },
-  ];
+  return [];
 }
 
 function createInitialEdges(): FlowEdge[] {
-  return [
-    {
-      id: "e-prompt-combine",
-      source: "prompt-1",
-      sourceHandle: createHandleId("output", "text", "text"),
-      target: "combine-1",
-      targetHandle: createHandleId("input", "textA", "text"),
-      type: "default",
-      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
-    },
-    {
-      id: "e-neg-combine",
-      source: "prompt-2",
-      sourceHandle: createHandleId("output", "text", "text"),
-      target: "combine-1",
-      targetHandle: createHandleId("input", "textB", "text"),
-      type: "default",
-      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
-    },
-    {
-      id: "e-combine-gen",
-      source: "combine-1",
-      sourceHandle: createHandleId("output", "text", "text"),
-      target: "generator-1",
-      targetHandle: createHandleId("input", "text", "text"),
-      type: "default",
-      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
-    },
-    {
-      id: "e-theme-gen",
-      source: "theme-1",
-      sourceHandle: createHandleId("output", "json", "json"),
-      target: "generator-1",
-      targetHandle: createHandleId("input", "jsonTheme", "json"),
-      type: "default",
-      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
-    },
-    {
-      id: "e-animation-gen",
-      source: "animation-1",
-      sourceHandle: createHandleId("output", "json", "json"),
-      target: "generator-1",
-      targetHandle: createHandleId("input", "jsonAnimation", "json"),
-      type: "default",
-      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
-    },
-    {
-      id: "e-image-gen",
-      source: "model-1",
-      sourceHandle: createHandleId("output", "image", "image"),
-      target: "generator-1",
-      targetHandle: createHandleId("input", "image", "image"),
-      type: "default",
-      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
-    },
-    {
-      id: "e-neg-gen",
-      source: "prompt-2",
-      sourceHandle: createHandleId("output", "text", "text"),
-      target: "generator-1",
-      targetHandle: createHandleId("input", "negative", "text"),
-      type: "default",
-      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
-    },
-    {
-      id: "e-gen-patchplan",
-      source: "generator-1",
-      sourceHandle: createHandleId("output", "heroArtifact", "heroArtifact"),
-      target: "patchplan-1",
-      targetHandle: createHandleId("input", "heroArtifact", "heroArtifact"),
-      type: "default",
-      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
-    },
-    {
-      id: "e-theme-patchplan",
-      source: "theme-1",
-      sourceHandle: createHandleId("output", "json", "json"),
-      target: "patchplan-1",
-      targetHandle: createHandleId("input", "jsonTheme", "json"),
-      type: "default",
-      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
-    },
-    {
-      id: "e-animation-patchplan",
-      source: "animation-1",
-      sourceHandle: createHandleId("output", "json", "json"),
-      target: "patchplan-1",
-      targetHandle: createHandleId("input", "jsonAnimation", "json"),
-      type: "default",
-      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
-    },
-    {
-      id: "e-patchplan-workspace",
-      source: "patchplan-1",
-      sourceHandle: createHandleId("output", "patchPlan", "patchPlan"),
-      target: "workspace-1",
-      targetHandle: createHandleId("input", "patchPlan", "patchPlan"),
-      type: "default",
-      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
-    },
-    {
-      id: "e-workspace-preview",
-      source: "workspace-1",
-      sourceHandle: createHandleId("output", "workspace", "workspace"),
-      target: "preview-1",
-      targetHandle: createHandleId("input", "workspace", "workspace"),
-      type: "default",
-      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
-    },
-    {
-      id: "e-gen-publish",
-      source: "generator-1",
-      sourceHandle: createHandleId("output", "heroArtifact", "heroArtifact"),
-      target: "publish-1",
-      targetHandle: createHandleId("input", "heroArtifact", "heroArtifact"),
-      type: "default",
-      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
-    },
-    {
-      id: "e-workspace-publish",
-      source: "workspace-1",
-      sourceHandle: createHandleId("output", "workspace", "workspace"),
-      target: "publish-1",
-      targetHandle: createHandleId("input", "workspace", "workspace"),
-      type: "default",
-      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
-    },
-    {
-      id: "e-preview-publish",
-      source: "preview-1",
-      sourceHandle: createHandleId("output", "preview", "preview"),
-      target: "publish-1",
-      targetHandle: createHandleId("input", "preview", "preview"),
-      type: "default",
-      style: { stroke: "#A0AEC0", strokeWidth: 1.5, opacity: 0.5 },
-    },
-  ];
+  return [];
 }
 
 function normalizeEdges(inputEdges: FlowEdge[]): FlowEdge[] {
@@ -340,6 +165,65 @@ const kindIdPrefix: Record<NodeKind, string> = {
   heroPublish: "publish",
 };
 
+function topoSortNodeIds(nodeIds: string[], edges: FlowEdge[]) {
+  const indegree = new Map<string, number>();
+  const adjacency = new Map<string, string[]>();
+
+  for (const nodeId of nodeIds) {
+    indegree.set(nodeId, 0);
+    adjacency.set(nodeId, []);
+  }
+
+  for (const edge of edges) {
+    if (!indegree.has(edge.source) || !indegree.has(edge.target)) {
+      continue;
+    }
+
+    indegree.set(edge.target, (indegree.get(edge.target) ?? 0) + 1);
+    adjacency.set(edge.source, [...(adjacency.get(edge.source) ?? []), edge.target]);
+  }
+
+  const queue = nodeIds.filter((nodeId) => (indegree.get(nodeId) ?? 0) === 0);
+  const order: string[] = [];
+
+  while (queue.length) {
+    const current = queue.shift();
+    if (!current) {
+      continue;
+    }
+
+    order.push(current);
+    for (const next of adjacency.get(current) ?? []) {
+      const nextDegree = (indegree.get(next) ?? 1) - 1;
+      indegree.set(next, nextDegree);
+      if (nextDegree === 0) {
+        queue.push(next);
+      }
+    }
+  }
+
+  return order;
+}
+
+function collectGraphTraversal(startId: string, map: Map<string, string[]>) {
+  const visited = new Set<string>();
+  const stack = [startId];
+
+  while (stack.length) {
+    const current = stack.pop();
+    if (!current || visited.has(current)) {
+      continue;
+    }
+    visited.add(current);
+
+    for (const linked of map.get(current) ?? []) {
+      stack.push(linked);
+    }
+  }
+
+  return visited;
+}
+
 export function BuilderShell() {
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(createInitialNodes());
   const [edges, setEdges, onEdgesChange] = useEdgesState<FlowEdge>(createInitialEdges());
@@ -367,6 +251,7 @@ export function BuilderShell() {
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
   const invalidReasonRef = useRef("Invalid connection");
+  const runProgressTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     nodesRef.current = nodes;
@@ -396,6 +281,108 @@ export function BuilderShell() {
       document.removeEventListener("mouseup", handleMouseUp);
     };
   }, []);
+
+  const stopRunProgress = useCallback(() => {
+    if (runProgressTimerRef.current !== null) {
+      window.clearInterval(runProgressTimerRef.current);
+      runProgressTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      stopRunProgress();
+    };
+  }, [stopRunProgress]);
+
+  const buildExecutionPlan = useCallback((targetNodeId?: string) => {
+    const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
+    const allNodeIds = currentNodes.map((node) => node.id);
+
+    if (!targetNodeId) {
+      return topoSortNodeIds(allNodeIds, currentEdges);
+    }
+
+    const outgoing = new Map<string, string[]>();
+    const incoming = new Map<string, string[]>();
+
+    for (const edge of currentEdges) {
+      outgoing.set(edge.source, [...(outgoing.get(edge.source) ?? []), edge.target]);
+      incoming.set(edge.target, [...(incoming.get(edge.target) ?? []), edge.source]);
+    }
+
+    const descendants = collectGraphTraversal(targetNodeId, outgoing);
+    const relevant = new Set<string>();
+    for (const nodeId of descendants) {
+      for (const ancestorId of collectGraphTraversal(nodeId, incoming)) {
+        relevant.add(ancestorId);
+      }
+      relevant.add(nodeId);
+    }
+
+    const subsetIds = allNodeIds.filter((id) => relevant.has(id));
+    const subsetEdges = currentEdges.filter(
+      (edge) => relevant.has(edge.source) && relevant.has(edge.target)
+    );
+    return topoSortNodeIds(subsetIds, subsetEdges);
+  }, []);
+
+  const startRunProgress = useCallback(
+    (planNodeIds: string[], runLabel: string) => {
+      stopRunProgress();
+      if (!planNodeIds.length) {
+        setStatusMessage(`Running ${runLabel}...`);
+        return;
+      }
+
+      const indexById = new Map(planNodeIds.map((nodeId, index) => [nodeId, index]));
+      let stepIndex = 0;
+
+      const tick = () => {
+        const activeIndex = Math.min(stepIndex, planNodeIds.length - 1);
+        const activeNodeId = planNodeIds[activeIndex];
+        const activeNodeLabel =
+          nodesRef.current.find((node) => node.id === activeNodeId)?.data.label ?? activeNodeId;
+
+        setNodes((currentNodes) =>
+          currentNodes.map((node) => {
+            const nodePlanIndex = indexById.get(node.id);
+            if (nodePlanIndex === undefined) {
+              return node;
+            }
+
+            const status =
+              nodePlanIndex < activeIndex
+                ? "success"
+                : nodePlanIndex === activeIndex
+                  ? "running"
+                  : "idle";
+
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                status,
+              },
+            };
+          })
+        );
+
+        setStatusMessage(
+          `Running ${runLabel}: ${activeNodeLabel} (${Math.min(activeIndex + 1, planNodeIds.length)}/${planNodeIds.length})`
+        );
+
+        if (stepIndex < planNodeIds.length - 1) {
+          stepIndex += 1;
+        }
+      };
+
+      tick();
+      runProgressTimerRef.current = window.setInterval(tick, 850);
+    },
+    [setNodes, stopRunProgress]
+  );
 
   const fetchRunHistory = useCallback(async () => {
     setIsRunHistoryLoading(true);
@@ -559,27 +546,40 @@ export function BuilderShell() {
   }, [setNodes]);
 
   const runEndpoint = useCallback(
-    async (path: string, payload: Record<string, unknown>, runLabel: string) => {
+    async (
+      path: string,
+      payload: Record<string, unknown>,
+      runLabel: string,
+      planNodeIds: string[],
+      snapshotOverride?: BuilderGraphSnapshot
+    ) => {
       if (isExecuting) {
         setStatusMessage("Execution already in progress");
         return;
       }
 
-      const snapshot: BuilderGraphSnapshot = {
-        nodes: nodesRef.current,
-        edges: edgesRef.current,
-      };
+      const snapshot: BuilderGraphSnapshot =
+        snapshotOverride ?? {
+          nodes: nodesRef.current,
+          edges: edgesRef.current,
+        };
 
       setIsExecuting(true);
       resetExecutionView();
-      setStatusMessage(`Running ${runLabel}...`);
+      startRunProgress(planNodeIds, runLabel);
 
+      let timeoutId: number | null = null;
       try {
+        const controller = new AbortController();
+        timeoutId = window.setTimeout(() => controller.abort(), 120000);
         const response = await fetch(path, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ snapshot, workflowId: WORKFLOW_ID, ...payload }),
+          signal: controller.signal,
         });
+        window.clearTimeout(timeoutId);
+        timeoutId = null;
         const body = (await response.json()) as {
           ok: boolean;
           result?: EngineRunResult;
@@ -601,24 +601,85 @@ export function BuilderShell() {
 
         await fetchRunHistory();
       } catch (error) {
-        setStatusMessage(error instanceof Error ? error.message : "Execution failed");
+        const message =
+          error instanceof Error && error.name === "AbortError"
+            ? "Run timed out after 120s"
+            : error instanceof Error
+              ? error.message
+              : "Execution failed";
+        setStatusMessage(message);
       } finally {
+        if (timeoutId !== null) {
+          window.clearTimeout(timeoutId);
+        }
+        stopRunProgress();
         setIsExecuting(false);
       }
     },
-    [fetchRunHistory, isExecuting, resetExecutionView, setNodes]
+    [fetchRunHistory, isExecuting, resetExecutionView, setNodes, startRunProgress, stopRunProgress]
   );
 
   const runSingleNode = useCallback(
     (nodeId: string) => {
-      void runEndpoint("/api/workflow/run-from-node", { nodeId }, `node ${nodeId}`);
+      const planNodeIds = buildExecutionPlan(nodeId);
+      void runEndpoint("/api/workflow/run-from-node", { nodeId }, `node ${nodeId}`, planNodeIds);
     },
-    [runEndpoint]
+    [buildExecutionPlan, runEndpoint]
   );
 
-  const onRunWorkflow = useCallback(() => {
-    void runEndpoint("/api/workflow/run", {}, "workflow");
-  }, [runEndpoint]);
+  const onRunConnectedNodes = useCallback(() => {
+    if (selectedNodeId) {
+      const planNodeIds = buildExecutionPlan(selectedNodeId);
+      const selectedLabel =
+        nodesRef.current.find((node) => node.id === selectedNodeId)?.data.label ?? selectedNodeId;
+      void runEndpoint(
+        "/api/workflow/run-from-node",
+        { nodeId: selectedNodeId },
+        `node ${selectedLabel}`,
+        planNodeIds
+      );
+      return;
+    }
+
+    const currentEdges = edgesRef.current;
+    const connectedIds = new Set<string>();
+
+    for (const edge of currentEdges) {
+      connectedIds.add(edge.source);
+      connectedIds.add(edge.target);
+    }
+
+    if (connectedIds.size === 0) {
+      if (nodesRef.current.length > 0) {
+        const snapshot: BuilderGraphSnapshot = {
+          nodes: nodesRef.current,
+          edges: currentEdges,
+        };
+        const planNodeIds = topoSortNodeIds(
+          snapshot.nodes.map((node) => node.id),
+          snapshot.edges
+        );
+        void runEndpoint("/api/workflow/run", {}, "all nodes", planNodeIds, snapshot);
+      } else {
+        setStatusMessage("No nodes to run");
+      }
+      return;
+    }
+
+    const snapshot: BuilderGraphSnapshot = {
+      nodes: nodesRef.current.filter((node) => connectedIds.has(node.id)),
+      edges: currentEdges.filter(
+        (edge) => connectedIds.has(edge.source) && connectedIds.has(edge.target)
+      ),
+    };
+
+    const planNodeIds = topoSortNodeIds(
+      snapshot.nodes.map((node) => node.id),
+      snapshot.edges
+    );
+
+    void runEndpoint("/api/workflow/run", {}, "connected nodes", planNodeIds, snapshot);
+  }, [buildExecutionPlan, runEndpoint, selectedNodeId]);
 
   const validateConnectionResult = useCallback((connection: Connection | FlowEdge) => {
     const result = validateConnection(connection, nodesRef.current, edgesRef.current);
@@ -794,8 +855,96 @@ export function BuilderShell() {
     );
   };
 
+  useEffect(() => {
+    const selectedIsImageNode = selectedNode?.data.kind === "imageInput";
+    if (!selectedIsImageNode || !selectedNodeId) {
+      return;
+    }
+
+    const applyImageToSelectedNode = (dataUrl: string, sourceLabel: string) => {
+      setNodes((currentNodes) =>
+        currentNodes.map((node) =>
+          node.id === selectedNodeId
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  config: {
+                    ...node.data.config,
+                    imagePath: dataUrl,
+                  },
+                },
+              }
+            : node
+        )
+      );
+      setStatusMessage(`Image pasted to Image Input (${sourceLabel})`);
+    };
+
+    const onPaste = async (event: ClipboardEvent) => {
+      if (isEditableTarget(event.target)) {
+        return;
+      }
+
+      const items = event.clipboardData?.items;
+      if (!items || items.length === 0) {
+        return;
+      }
+
+      const imageItem = Array.from(items).find((item) => item.type.startsWith("image/"));
+      if (!imageItem) {
+        return;
+      }
+
+      event.preventDefault();
+      const file = imageItem.getAsFile();
+      if (!file) {
+        return;
+      }
+
+      try {
+        const dataUrl = await fileToDataUrl(file);
+        applyImageToSelectedNode(dataUrl, "clipboard");
+      } catch {
+        setStatusMessage("Failed to paste image from clipboard");
+      }
+    };
+
+    const onKeyDown = async (event: KeyboardEvent) => {
+      const isAltV = event.altKey && event.key.toLowerCase() === "v";
+      if (!isAltV || isEditableTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      try {
+        const clipboardItems = await navigator.clipboard.read();
+        for (const item of clipboardItems) {
+          const imageType = item.types.find((type) => type.startsWith("image/"));
+          if (!imageType) {
+            continue;
+          }
+          const blob = await item.getType(imageType);
+          const dataUrl = await fileToDataUrl(blob);
+          applyImageToSelectedNode(dataUrl, "Alt+V");
+          return;
+        }
+        setStatusMessage("No image found in clipboard");
+      } catch {
+        setStatusMessage("Clipboard permission denied");
+      }
+    };
+
+    window.addEventListener("paste", onPaste);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("paste", onPaste);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [selectedNode?.data.kind, selectedNodeId, setNodes]);
+
   return (
-    <BuilderActionsProvider value={{ runNode: runSingleNode, deleteNode: deleteSingleNode }}>
+    <BuilderActionsProvider value={{ deleteNode: deleteSingleNode }}>
       <div className="builder-clean flex h-screen w-full flex-col bg-[#0B0D12] text-[#E2E8F0]">
         <WorkbenchTopbar
           onNew={onNew}
@@ -803,8 +952,6 @@ export function BuilderShell() {
           onLoad={onLoad}
           onSave={onSave}
           onExport={() => setJsonDialogOpen(true)}
-          onRunWorkflow={onRunWorkflow}
-          runningWorkflow={isExecuting}
           statusMessage={statusMessage}
         />
 
@@ -912,8 +1059,10 @@ export function BuilderShell() {
             <BottomToolbar
               isPaletteVisible={isPaletteVisible}
               isRunHistoryVisible={isRunHistoryVisible}
+              isRunningConnected={isExecuting}
               onTogglePalette={() => setIsPaletteVisible((visible) => !visible)}
               onToggleRunHistory={() => setIsRunHistoryVisible((visible) => !visible)}
+              onRunConnected={onRunConnectedNodes}
             />
 
             {!isSidebarOpen && selectedNodeId && (

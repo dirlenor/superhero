@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Settings2, Terminal } from "lucide-react";
+import { ClipboardPaste, Copy, ImagePlus, Settings2, Terminal } from "lucide-react";
 
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -25,8 +25,19 @@ export function InspectorPanel({
   onConfigChange,
 }: InspectorPanelProps) {
   const [activeTab, setActiveTab] = useState<"config" | "output">("config");
+  const [imageHelperText, setImageHelperText] = useState("");
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
 
-  const outputText = JSON.stringify(output ?? { message: "No output generated yet." }, null, 2);
+  const outputText = JSON.stringify(
+    output ?? { message: "No output generated yet." },
+    (key, value) => {
+      if (typeof value === "string" && value.startsWith("data:image/") && value.length > 100) {
+        return "<base64 image data hidden>";
+      }
+      return value;
+    },
+    2
+  );
   const outputRecord = (output ?? {}) as Record<string, unknown>;
   const previewRecord = (outputRecord.preview ?? null) as Record<string, unknown> | null;
   const workspaceRecord = (outputRecord.workspace ?? null) as Record<string, unknown> | null;
@@ -40,10 +51,73 @@ export function InspectorPanel({
   const patchOpsCount =
     patchPlanRecord && Array.isArray(patchPlanRecord.ops) ? patchPlanRecord.ops.length : null;
 
+  const fallbackCopyText = (value: string) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = value;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    textArea.style.top = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    const success = document.execCommand("copy");
+    document.body.removeChild(textArea);
+    return success;
+  };
+
   const onCopyOutput = async () => {
     try {
       await navigator.clipboard.writeText(outputText);
+      setCopyState("copied");
     } catch {
+      const ok = fallbackCopyText(outputText);
+      setCopyState(ok ? "copied" : "failed");
+    }
+
+    window.setTimeout(() => {
+      setCopyState("idle");
+    }, 1400);
+  };
+
+  const handleImageFilePick = (file: File | null) => {
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const value = reader.result;
+      if (typeof value === "string") {
+        onConfigChange("imagePath", value);
+        setImageHelperText(`Loaded ${file.name}`);
+      }
+    };
+    reader.onerror = () => {
+      setImageHelperText("Unable to read image file");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePasteClipboardImage = async () => {
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      for (const item of clipboardItems) {
+        const imageType = item.types.find((type) => type.startsWith("image/"));
+        if (!imageType) {
+          continue;
+        }
+
+        const blob = await item.getType(imageType);
+        const file = new File([blob], `clipboard.${imageType.split("/")[1] ?? "png"}`, {
+          type: imageType,
+        });
+        handleImageFilePick(file);
+        return;
+      }
+
+      setImageHelperText("No image found in clipboard");
+    } catch {
+      setImageHelperText("Clipboard access was denied");
     }
   };
 
@@ -161,6 +235,51 @@ export function InspectorPanel({
                 </div>
               );
             })}
+
+            {template.kind === "imageInput" ? (
+              <div className="space-y-3 rounded-lg border border-[#2D313A] bg-[#0E1015] p-3">
+                <p className="text-xs font-semibold text-[#d5e4ff]">Image Source</p>
+
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-[#2D313A] bg-[#13151A] px-3 py-2 text-xs font-medium text-[#A0AEC0] hover:text-white">
+                  <ImagePlus className="h-3.5 w-3.5" />
+                  Upload image file
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => {
+                      handleImageFilePick(event.target.files?.[0] ?? null);
+                    }}
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handlePasteClipboardImage();
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-md border border-[#2D313A] bg-[#13151A] px-3 py-2 text-xs font-medium text-[#A0AEC0] hover:text-white"
+                >
+                  <ClipboardPaste className="h-3.5 w-3.5" />
+                  Paste image from clipboard
+                </button>
+
+                {typeof config.imagePath === "string" && config.imagePath.trim() ? (
+                  <div className="overflow-hidden rounded-md border border-[#2D313A] bg-[#10141d] p-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={config.imagePath}
+                      alt="Image preview"
+                      className="max-h-44 w-full rounded object-contain"
+                    />
+                  </div>
+                ) : null}
+
+                {imageHelperText ? (
+                  <p className="text-[11px] text-[#8fa2cb]">{imageHelperText}</p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="rounded-lg border border-[#2D313A] bg-[#0E1015] p-4">
@@ -175,7 +294,7 @@ export function InspectorPanel({
                 className="inline-flex items-center gap-1 rounded-md border border-[#2D313A] bg-[#13151A] px-2 py-1 text-[11px] font-medium text-[#A0AEC0] transition-colors hover:text-white"
               >
                 <Copy className="h-3 w-3" />
-                Copy
+                {copyState === "copied" ? "Copied" : copyState === "failed" ? "Failed" : "Copy"}
               </button>
             </div>
             <pre className="max-h-[400px] overflow-auto text-xs leading-relaxed text-[#A0AEC0] scrollbar-thin">

@@ -18,7 +18,7 @@ export const heroGenerateMockNode: NodeDefinition = {
     image: "image",
     negative: "text",
   },
-  optionalInputs: ["image", "negative"],
+  optionalInputs: ["jsonTheme", "jsonAnimation", "image", "negative"],
   outputs: {
     heroArtifact: "heroArtifact",
   },

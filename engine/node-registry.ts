@@ -39,22 +39,42 @@ export const nodeTemplates: NodeTemplate[] = [
   {
     kind: "imageInput",
     label: "Image Input",
-    description: "Select source image file",
+    description: "Load image and extract prompt via OpenRouter",
     category: "Inputs",
     accentColor: "#6de0ff",
     defaults: {
-      imagePath: "/assets/source/hero-base.png",
+      mode: "visionPrompt",
+      imagePath: "",
+      openRouterModel: "qwen/qwen3-vl-235b-a22b-thinking",
     },
     fields: [
+      {
+        key: "mode",
+        label: "Mode",
+        type: "select",
+        options: [
+          { label: "visionPrompt", value: "visionPrompt" },
+          { label: "passthrough", value: "passthrough" },
+        ],
+      },
       {
         key: "imagePath",
         label: "Image Path",
         type: "text",
-        placeholder: "/assets/source/hero-base.png",
+        placeholder: "Paste image URL or use upload below",
+      },
+      {
+        key: "openRouterModel",
+        label: "OpenRouter Model",
+        type: "text",
+        placeholder: "qwen/qwen3-vl-235b-a22b-thinking",
       },
     ],
     inputs: [],
-    outputs: [{ key: "image", label: "image", type: "image", direction: "output" }],
+    outputs: [
+      { key: "image", label: "image", type: "image", direction: "output" },
+      { key: "text", label: "text(prompt)", type: "text", direction: "output" },
+    ],
   },
   {
     kind: "prompt",
@@ -232,8 +252,8 @@ export const nodeTemplates: NodeTemplate[] = [
     ],
     inputs: [
       { key: "text", label: "text", type: "text", direction: "input" },
-      { key: "jsonTheme", label: "json(theme)", type: "json", direction: "input" },
-      { key: "jsonAnimation", label: "json(animation)", type: "json", direction: "input" },
+      { key: "jsonTheme", label: "json(theme)", type: "json", direction: "input", optional: true },
+      { key: "jsonAnimation", label: "json(animation)", type: "json", direction: "input", optional: true },
       { key: "image", label: "image(optional)", type: "image", direction: "input", optional: true },
       { key: "negative", label: "negative(optional)", type: "text", direction: "input", optional: true },
     ],

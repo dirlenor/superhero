@@ -1,5 +1,5 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { CheckCircle2, Play, AlertCircle, Loader2, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
 import { useBuilderActions } from "@/components/builder/builder-actions-context";
 import type { FlowNode } from "@/components/builder/types";
@@ -17,8 +17,9 @@ const portColorMap: Record<string, string> = {
 };
 
 export function WorkbenchNode({ id, data, selected }: NodeProps<FlowNode>) {
-  const { runNode, deleteNode } = useBuilderActions();
+  const { deleteNode } = useBuilderActions();
   const template = getTemplateByKind(data.kind);
+  const isRunning = data.status === "running";
 
   if (!template) {
     return null;
@@ -29,13 +30,32 @@ export function WorkbenchNode({ id, data, selected }: NodeProps<FlowNode>) {
   if (template.outputs.length > 0) mainColor = portColorMap[template.outputs[0].type] || mainColor;
   else if (template.inputs.length > 0) mainColor = portColorMap[template.inputs[0].type] || mainColor;
 
+  const imagePreviewPath =
+    data.kind === "imageInput" && typeof data.config.imagePath === "string"
+      ? data.config.imagePath
+      : null;
+
+  const outputRecord = (data.output ?? null) as Record<string, unknown> | null;
+  const outputPrompt = outputRecord && typeof outputRecord.text === "string"
+    ? outputRecord.text
+    : null;
+
+  const inlineConfigEntries = Object.entries(data.config)
+    .filter(([key]) => !(data.kind === "imageInput" && key === "imagePath"))
+    .slice(0, 2);
+
   return (
     <div
-      className="relative min-w-[280px] rounded-[18px] bg-[#15171e] text-white shadow-xl transition-shadow duration-300"
+      className={`relative w-[280px] max-w-[280px] rounded-[18px] bg-[#15171e] text-white shadow-xl transition-shadow duration-300 ${
+        isRunning ? "node-running-pulse" : ""
+      }`}
       style={{
-        boxShadow: selected
-          ? `0 18px 38px -16px rgba(0,0,0,0.95), 0 0 20px ${mainColor}66, 0 0 48px ${mainColor}2B`
-          : "0 10px 25px -5px rgba(0,0,0,0.5)",
+        boxShadow:
+          isRunning
+            ? `0 18px 38px -16px rgba(0,0,0,0.95), 0 0 16px ${mainColor}AA, 0 0 38px ${mainColor}66`
+            : selected
+              ? `0 18px 38px -16px rgba(0,0,0,0.95), 0 0 20px ${mainColor}66, 0 0 48px ${mainColor}2B`
+              : "0 10px 25px -5px rgba(0,0,0,0.5)",
       }}
     >
       {/* Header */}
@@ -61,28 +81,30 @@ export function WorkbenchNode({ id, data, selected }: NodeProps<FlowNode>) {
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
-
-          <button
-            type="button"
-            onClick={() => runNode(id)}
-            className="nodrag flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-semibold tracking-wider transition-colors"
-            style={{
-              backgroundColor: `${mainColor}25`,
-              color: mainColor,
-              border: `1px solid ${mainColor}40`
-            }}
-          >
-            {data.status === "success" ? <CheckCircle2 className="h-3 w-3" /> : null}
-            {data.status === "running" ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-            {data.status === "error" ? <AlertCircle className="h-3 w-3" /> : null}
-            {data.status === "idle" ? <Play className="h-3 w-3" /> : null}
-            {data.status === "running" ? "Running" : "Run"}
-          </button>
         </div>
       </div>
 
       {/* Body */}
       <div className="px-4 py-4 space-y-4">
+        {imagePreviewPath ? (
+          <div className="mx-auto w-[220px] overflow-hidden rounded-lg bg-[#0E1015] p-1">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imagePreviewPath}
+              alt="Image Input preview"
+              className="aspect-[4/3] w-full rounded object-cover"
+            />
+          </div>
+        ) : null}
+
+        {data.kind === "imageInput" ? (
+          <div className="rounded-lg border border-[#1A1F2A] bg-[#0E1015] px-3 py-2">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-[#7f90b3]">Output Prompt</p>
+            <p className="mt-1 max-h-24 overflow-auto whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-xs leading-relaxed text-[#d6e3ff]">
+              {outputPrompt ?? "Run connected nodes to extract prompt from this image."}
+            </p>
+          </div>
+        ) : null}
         
         {/* Ports Row */}
         {(template.inputs.length > 0 || template.outputs.length > 0) && (
@@ -130,12 +152,12 @@ export function WorkbenchNode({ id, data, selected }: NodeProps<FlowNode>) {
         )}
 
         {/* Inline Controls (mocking the inputs inside nodes in the image) */}
-        {Object.entries(data.config).slice(0, 2).map(([key, value]) => {
+        {inlineConfigEntries.map(([key, value]) => {
             const isText = typeof value === 'string' && value.length > 20;
             return (
               <div key={key} className="mt-2 text-xs">
                 {isText ? (
-                  <div className="text-[#A0AEC0] mb-2">{value}</div>
+                  <div className="mb-2 truncate text-[#A0AEC0]" title={String(value)}>{value}</div>
                 ) : null}
                 
                 <div className="rounded-lg bg-[#0E1015] px-3 py-2 text-[#718096] flex justify-between items-center border border-[#1e212b]">
