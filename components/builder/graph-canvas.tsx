@@ -1,9 +1,11 @@
+import { useRef, useState } from "react";
 import {
   Background,
   BackgroundVariant,
   Controls,
   MiniMap,
   ReactFlow,
+  type ReactFlowInstance,
   type Connection,
   type EdgeMouseHandler,
   type IsValidConnection,
@@ -14,7 +16,9 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { WorkbenchNode } from "@/components/builder/workbench-node";
+import { getTemplateByKind } from "@/engine/node-registry";
 import type { FlowEdge, FlowNode } from "@/components/builder/types";
+import type { NodeKind } from "@/engine/types";
 
 const nodeTypes = {
   workbenchNode: WorkbenchNode,
@@ -30,10 +34,26 @@ interface GraphCanvasProps {
   onConnectStart: () => void;
   onConnectEnd: (payload: { x: number; y: number }) => void;
   onSelectionNode: (nodes: FlowNode[]) => void;
+  draggingNodeKind: NodeKind | null;
+  onDropNode: (kind: NodeKind, position: { x: number; y: number }) => void;
   onNodeDoubleClick?: NodeMouseHandler;
   onEdgeClick?: EdgeMouseHandler<FlowEdge>;
   onEdgeDoubleClick?: EdgeMouseHandler<FlowEdge>;
   invalidTooltip: { x: number; y: number; message: string } | null;
+}
+
+const DRAG_NODE_MIME = "application/x-superhero-node-kind";
+
+function readDraggedNodeKind(dataTransfer: DataTransfer | null): NodeKind | null {
+  if (!dataTransfer) {
+    return null;
+  }
+
+  const kind =
+    dataTransfer.getData(DRAG_NODE_MIME) ||
+    dataTransfer.getData("text/plain");
+
+  return getTemplateByKind(kind as NodeKind)?.kind ?? null;
 }
 
 const getNodeColor = (node: { data?: { kind?: string } }) => {
@@ -63,13 +83,67 @@ export function GraphCanvas({
   onConnectStart,
   onConnectEnd,
   onSelectionNode,
+  draggingNodeKind,
+  onDropNode,
   onNodeDoubleClick,
   onEdgeClick,
   onEdgeDoubleClick,
   invalidTooltip,
 }: GraphCanvasProps) {
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const [flowInstance, setFlowInstance] = useState<ReactFlowInstance<FlowNode, FlowEdge> | null>(null);
+  const [dragPreview, setDragPreview] = useState<{
+    x: number;
+    y: number;
+    kind: NodeKind;
+  } | null>(null);
+
+  const updatePreviewPosition = (event: { clientX: number; clientY: number }, kind: NodeKind) => {
+    const rect = wrapperRef.current?.getBoundingClientRect();
+    if (!rect) {
+      return;
+    }
+
+    setDragPreview({
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+      kind,
+    });
+  };
+
   return (
-    <div className="grid-noise relative h-full w-full overflow-hidden">
+    <div
+      ref={wrapperRef}
+      className="grid-noise relative h-full w-full overflow-hidden"
+      onDragOver={(event) => {
+        const kind = draggingNodeKind ?? readDraggedNodeKind(event.dataTransfer);
+        if (!kind) {
+          return;
+        }
+
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "copy";
+        updatePreviewPosition(event, kind);
+      }}
+      onDragLeave={(event) => {
+        if (!wrapperRef.current?.contains(event.relatedTarget as Node | null)) {
+          setDragPreview(null);
+        }
+      }}
+      onDrop={(event) => {
+        const kind = draggingNodeKind ?? readDraggedNodeKind(event.dataTransfer);
+        setDragPreview(null);
+        if (!kind) {
+          return;
+        }
+
+        event.preventDefault();
+        const position = flowInstance
+          ? flowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY })
+          : { x: event.clientX, y: event.clientY };
+        onDropNode(kind, position);
+      }}
+    >
       <div className="absolute inset-0">
         <ReactFlow
           fitView
@@ -94,6 +168,7 @@ export function GraphCanvas({
           onEdgeClick={onEdgeClick}
           onEdgeDoubleClick={onEdgeDoubleClick}
           edgesFocusable
+          onInit={setFlowInstance}
           defaultEdgeOptions={{
             type: "default",
             animated: false,
@@ -115,6 +190,18 @@ export function GraphCanvas({
           />
           <Controls showInteractive={false} />
         </ReactFlow>
+
+        {dragPreview ? (
+          <div
+            className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[#2D313A] bg-[#13151A]/95 px-4 py-3 shadow-[0_14px_30px_-16px_rgba(0,0,0,0.9)]"
+            style={{ left: dragPreview.x, top: dragPreview.y }}
+          >
+            <p className="text-xs font-semibold text-[#e8f0ff]">
+              {getTemplateByKind(dragPreview.kind)?.label ?? dragPreview.kind}
+            </p>
+            <p className="mt-1 text-[10px] text-[#8fa2cb]">Drop to place node</p>
+          </div>
+        ) : null}
 
         {invalidTooltip ? (
           <div

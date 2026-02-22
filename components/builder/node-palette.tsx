@@ -22,7 +22,11 @@ interface NodePaletteProps {
   query: string;
   onQueryChange: (query: string) => void;
   onAddNode: (kind: NodeKind) => void;
+  onDragNodeStart: (kind: NodeKind) => void;
+  onDragNodeEnd: () => void;
 }
+
+const DRAG_NODE_MIME = "application/x-superhero-node-kind";
 
 const iconMap: Record<NodeKind, React.ElementType> = {
   imageInput: ImageIcon,
@@ -43,6 +47,8 @@ export function NodePalette({
   query,
   onQueryChange,
   onAddNode,
+  onDragNodeStart,
+  onDragNodeEnd,
 }: NodePaletteProps) {
   const groupedTemplates = templates.reduce<Record<NodeCategory, NodeTemplate[]>>(
     (acc, template) => {
@@ -99,6 +105,14 @@ export function NodePalette({
                       <button
                         key={template.kind}
                         onClick={() => onAddNode(template.kind)}
+                        draggable
+                        onDragStart={(event) => {
+                          onDragNodeStart(template.kind);
+                          event.dataTransfer.setData(DRAG_NODE_MIME, template.kind);
+                          event.dataTransfer.setData("text/plain", template.kind);
+                          event.dataTransfer.effectAllowed = "copy";
+                        }}
+                        onDragEnd={onDragNodeEnd}
                         className="group flex aspect-square flex-col items-center justify-center gap-3 rounded-xl border-0 bg-[#13151A] p-3 transition-all hover:bg-[#1A202C] focus:outline-none"
                       >
                         <div

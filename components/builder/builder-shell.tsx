@@ -358,6 +358,7 @@ export function BuilderShell() {
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [isPaletteVisible, setIsPaletteVisible] = useState(true);
   const [isRunHistoryVisible, setIsRunHistoryVisible] = useState(true);
+  const [draggingNodeKind, setDraggingNodeKind] = useState<NodeKind | null>(null);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(360);
@@ -664,7 +665,7 @@ export function BuilderShell() {
     [setEdges]
   );
 
-  const onAddNode = useCallback((kind: NodeKind) => {
+  const onAddNode = useCallback((kind: NodeKind, position?: { x: number; y: number }) => {
     const template = getTemplateByKind(kind);
     if (!template) {
       return;
@@ -679,7 +680,7 @@ export function BuilderShell() {
       {
         id,
         type: "workbenchNode",
-        position: {
+        position: position ?? {
           x: 280 + offset,
           y: 120 + offset,
         },
@@ -827,6 +828,8 @@ export function BuilderShell() {
                 query={paletteQuery}
                 onQueryChange={setPaletteQuery}
                 onAddNode={onAddNode}
+                onDragNodeStart={setDraggingNodeKind}
+                onDragNodeEnd={() => setDraggingNodeKind(null)}
               />
             </div>
           </div>
@@ -850,6 +853,8 @@ export function BuilderShell() {
                 setSelectedNodeId(id);
                 if (!id) setIsSidebarOpen(false);
               }}
+              draggingNodeKind={draggingNodeKind}
+              onDropNode={onAddNode}
               onNodeDoubleClick={(_, node) => {
                 setSelectedNodeId(node.id);
                 setIsSidebarOpen(true);
