@@ -690,6 +690,21 @@ export function BuilderShell() {
     setStatusMessage(`Added ${template.label}`);
   }, [setNodes]);
 
+  const deleteSingleNode = useCallback(
+    (nodeId: string) => {
+      setNodes((currentNodes) => currentNodes.filter((node) => node.id !== nodeId));
+      setEdges((currentEdges) =>
+        currentEdges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
+      );
+      if (selectedNodeId === nodeId) {
+        setSelectedNodeId(null);
+        setIsSidebarOpen(false);
+      }
+      setStatusMessage("Node deleted");
+    },
+    [selectedNodeId, setEdges, setNodes]
+  );
+
   const onNew = () => {
     setNodes(createInitialNodes());
     setEdges(createInitialEdges());
@@ -704,6 +719,14 @@ export function BuilderShell() {
     const payload: BuilderGraphSnapshot = { nodes, edges };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     setStatusMessage("Saved to localStorage");
+  };
+
+  const onClearNodes = () => {
+    setNodes([]);
+    setEdges([]);
+    setSelectedNodeId(null);
+    setIsSidebarOpen(false);
+    setStatusMessage("Canvas cleared");
   };
 
   const onLoad = () => {
@@ -771,10 +794,11 @@ export function BuilderShell() {
   };
 
   return (
-    <BuilderActionsProvider value={{ runNode: runSingleNode }}>
+    <BuilderActionsProvider value={{ runNode: runSingleNode, deleteNode: deleteSingleNode }}>
       <div className="builder-clean flex h-screen w-full flex-col bg-[#0B0D12] text-[#E2E8F0]">
         <WorkbenchTopbar
           onNew={onNew}
+          onClearNodes={onClearNodes}
           onLoad={onLoad}
           onSave={onSave}
           onExport={() => setJsonDialogOpen(true)}

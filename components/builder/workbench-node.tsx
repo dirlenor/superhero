@@ -1,5 +1,5 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { CheckCircle2, Play, AlertCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, Play, AlertCircle, Loader2, Trash2 } from "lucide-react";
 
 import { useBuilderActions } from "@/components/builder/builder-actions-context";
 import type { FlowNode } from "@/components/builder/types";
@@ -17,7 +17,7 @@ const portColorMap: Record<string, string> = {
 };
 
 export function WorkbenchNode({ id, data, selected }: NodeProps<FlowNode>) {
-  const { runNode } = useBuilderActions();
+  const { runNode, deleteNode } = useBuilderActions();
   const template = getTemplateByKind(data.kind);
 
   if (!template) {
@@ -31,11 +31,10 @@ export function WorkbenchNode({ id, data, selected }: NodeProps<FlowNode>) {
 
   return (
     <div
-      className="min-w-[280px] rounded-[18px] border bg-[#15171e] text-white shadow-xl transition-shadow"
+      className="relative min-w-[280px] rounded-[18px] bg-[#15171e] text-white shadow-xl transition-shadow duration-300"
       style={{
-        borderColor: "#1E232E",
         boxShadow: selected
-          ? "0 14px 30px -8px rgba(0,0,0,0.82), 0 0 0 1px rgba(84,100,130,0.25)"
+          ? `0 18px 38px -16px rgba(0,0,0,0.95), 0 0 20px ${mainColor}66, 0 0 48px ${mainColor}2B`
           : "0 10px 25px -5px rgba(0,0,0,0.5)",
       }}
     >
@@ -46,22 +45,40 @@ export function WorkbenchNode({ id, data, selected }: NodeProps<FlowNode>) {
           <p className="font-[var(--font-sora)] text-[13px] font-medium tracking-wide text-[#E2E8F0]">{data.label}</p>
         </div>
         
-        <button
-          type="button"
-          onClick={() => runNode(id)}
-          className="nodrag flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-semibold tracking-wider transition-colors"
-          style={{
-            backgroundColor: `${mainColor}25`,
-            color: mainColor,
-            border: `1px solid ${mainColor}40`
-          }}
-        >
-          {data.status === "success" ? <CheckCircle2 className="h-3 w-3" /> : null}
-          {data.status === "running" ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-          {data.status === "error" ? <AlertCircle className="h-3 w-3" /> : null}
-          {data.status === "idle" ? <Play className="h-3 w-3" /> : null}
-          {data.status === "running" ? "Running" : "Run"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            title="Delete node"
+            onClick={(event) => {
+              event.stopPropagation();
+              deleteNode(id);
+            }}
+            className={`nodrag nopan flex h-7 w-7 items-center justify-center rounded-full bg-[#271516] text-[#fca5a5] transition-all duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] ${
+              selected
+                ? "scale-100 opacity-100 pointer-events-auto"
+                : "scale-75 opacity-0 pointer-events-none"
+            }`}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => runNode(id)}
+            className="nodrag flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-semibold tracking-wider transition-colors"
+            style={{
+              backgroundColor: `${mainColor}25`,
+              color: mainColor,
+              border: `1px solid ${mainColor}40`
+            }}
+          >
+            {data.status === "success" ? <CheckCircle2 className="h-3 w-3" /> : null}
+            {data.status === "running" ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+            {data.status === "error" ? <AlertCircle className="h-3 w-3" /> : null}
+            {data.status === "idle" ? <Play className="h-3 w-3" /> : null}
+            {data.status === "running" ? "Running" : "Run"}
+          </button>
+        </div>
       </div>
 
       {/* Body */}

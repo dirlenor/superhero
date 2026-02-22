@@ -4,6 +4,7 @@ import { createContext, useContext } from "react";
 
 interface BuilderActionsContextValue {
   runNode: (nodeId: string) => void;
+  deleteNode: (nodeId: string) => void;
 }
 
 const BuilderActionsContext = createContext<BuilderActionsContextValue | null>(null);

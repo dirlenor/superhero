@@ -7,11 +7,13 @@ import {
   LayoutGrid,
   Menu,
   Play,
+  Trash2,
   UploadCloud,
 } from "lucide-react";
 
 interface WorkbenchTopbarProps {
   onNew: () => void;
+  onClearNodes: () => void;
   onLoad: () => void;
   onSave: () => void;
   onExport: () => void;
@@ -22,6 +24,7 @@ interface WorkbenchTopbarProps {
 
 export function WorkbenchTopbar({
   onNew,
+  onClearNodes,
   onLoad,
   onSave,
   onExport,
@@ -82,6 +85,14 @@ export function WorkbenchTopbar({
           title="Load"
         >
           <FolderOpen className="h-4 w-4" />
+        </button>
+
+        <button
+          onClick={onClearNodes}
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-[#2D313A] bg-[#13151A] text-[#A0AEC0] hover:text-white"
+          title="Clear Nodes"
+        >
+          <Trash2 className="h-4 w-4" />
         </button>
 
         <Link
